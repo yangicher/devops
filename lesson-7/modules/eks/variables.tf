@@ -40,7 +40,7 @@ variable "enabled_cluster_log_types" {
 variable "node_instance_types" {
   type        = list(string)
   description = "Типи інстансів для worker nodes"
-  default     = ["t3.medium"]
+  default     = ["t3.small"]
 }
 
 variable "node_capacity_type" {

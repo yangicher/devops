@@ -64,7 +64,9 @@ module "eks" {
   public_subnet_ids  = module.vpc.public_subnet_ids
   private_subnet_ids = module.vpc.private_subnet_ids
 
-  node_instance_types = ["t3.medium"]
+  # t3.small — один з небагатьох типів, дозволених на Free Tier акаунті
+  # (t3.medium відхиляється з InvalidParameterCombination)
+  node_instance_types = ["t3.small"]
   node_desired_size   = 2
   node_min_size       = 2
   node_max_size       = 4
