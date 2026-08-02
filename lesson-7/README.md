@@ -35,9 +35,15 @@ lesson-7/
 | Регіон | `us-west-2` |
 | VPC | `lesson-7-vpc`, `10.0.0.0/16`, 3 публічні + 3 приватні підмережі, IGW + NAT |
 | EKS | `lesson-7-eks`, Kubernetes 1.33, публічний + приватний endpoint |
-| Node group | 2× `t3.medium` (min 2 / max 4) у приватних підмережах |
+| Node group | 2× `t3.small` (min 2 / max 4) у приватних підмережах |
 | Аддони | `vpc-cni`, `kube-proxy`, `coredns`, `metrics-server` (потрібен для HPA) |
 | ECR | `lesson-7-django`, scan on push, зберігає останні 10 образів |
+
+> Тип інстансу — `t3.small`, бо акаунт працює на тарифі Free Tier, який
+> дозволяє запускати лише free-tier-eligible типи. З `t3.medium` node group
+> падає з помилкою `AsgInstanceLaunchFailures / InvalidParameterCombination`.
+> Перелік дозволених типів:
+> `aws ec2 describe-instance-types --filters Name=free-tier-eligible,Values=true`
 
 Підмережі тегуються `kubernetes.io/cluster/lesson-7-eks=shared`,
 публічні — `kubernetes.io/role/elb=1`, приватні — `kubernetes.io/role/internal-elb=1`.
@@ -102,11 +108,19 @@ kubectl get hpa django-app
 kubectl get configmap django-app-config -o yaml
 ```
 
-Зовнішня адреса застосунку:
+Зовнішня адреса застосунку (ELB піднімається 1–3 хвилини):
 
 ```bash
-kubectl get svc django-app -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'
-curl http://<EXTERNAL-IP>/healthz/
+LB=$(kubectl get svc django-app -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+curl http://$LB/healthz/          # {"status": "ok"}
+curl -I http://$LB/admin/login/   # HTTP/1.1 200 OK
+```
+
+Перевірка, що змінні з ConfigMap реально потрапили в под:
+
+```bash
+POD=$(kubectl get pod -l app.kubernetes.io/name=django-app -o jsonpath='{.items[0].metadata.name}')
+kubectl exec $POD -- printenv | grep -E "DJANGO|POSTGRES|SQLITE"
 ```
 
 ## Змінні середовища (тема 4 → ConfigMap)
@@ -147,14 +161,32 @@ autoscaling:
 HPA рахує відсоток від `resources.requests.cpu` (100m), тому requests обовʼязкові.
 Метрики постачає аддон `metrics-server`.
 
-Перевірка масштабування під навантаженням:
+Перевірка масштабування під навантаженням. Одного циклу `wget` не вистачає,
+щоб перевищити поріг, тому запускаємо 10 паралельних:
 
 ```bash
-kubectl run load --rm -it --image=busybox --restart=Never -- \
-  sh -c "while true; do wget -q -O- http://django-app/healthz/; done"
+kubectl run load-gen --image=busybox --restart=Never -- /bin/sh -c \
+  'for i in 1 2 3 4 5 6 7 8 9 10; do (while true; do wget -q -O /dev/null http://django-app/admin/login/; done) & done; sleep 600'
 
 kubectl get hpa django-app -w
 ```
+
+Результат: за ~30 секунд `cpu` піднімається до ~370%/70%, а `REPLICAS`
+зростає з 2 до 6 (стеля `maxReplicas`).
+
+```
+NAME         REFERENCE               TARGETS       MINPODS   MAXPODS   REPLICAS
+django-app   Deployment/django-app   cpu: 372%/70%   2         6         6
+```
+
+Прибрати навантаження:
+
+```bash
+kubectl delete pod load-gen
+```
+
+Поди повертаються до 2 не одразу — типово через ~5 хвилин, це стандартне
+вікно стабілізації `scaleDown` у HPA.
 
 ## Видалення
 
