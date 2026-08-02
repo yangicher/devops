@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Django
+db.sqlite3
+mydatabase
+*.log
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+tfplan
+crash.log
+
+# IDE / OS / tooling
+.idea/
+.vscode/
+.DS_Store
+.claude/settings.local.json

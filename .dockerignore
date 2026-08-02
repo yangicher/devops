@@ -1,0 +1,11 @@
+.git
+.idea
+lesson-7
+nginx
+**/.terraform
+**/*.tfstate*
+**/__pycache__
+*.pyc
+db.sqlite3
+mydatabase
+docker-compose.yml

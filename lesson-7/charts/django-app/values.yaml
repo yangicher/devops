@@ -1,0 +1,79 @@
+# Кількість реплік. Ігнорується, коли увімкнено autoscaling (керує HPA).
+replicaCount: 2
+
+image:
+  # ECR репозиторій, створений модулем terraform modules/ecr
+  repository: 018585551525.dkr.ecr.us-west-2.amazonaws.com/lesson-7-django
+  tag: latest
+  pullPolicy: Always
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# Команда запуску контейнера: міграції + dev-сервер Django (як у docker-compose з теми 4)
+command:
+  - sh
+  - -c
+  - python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000
+
+containerPort: 8000
+
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 8000
+  annotations: {}
+
+# ---------------------------------------------------------------------------
+# ConfigMap: змінні середовища, перенесені з docker-compose (тема 4).
+# Підключаються до Deployment через envFrom.
+# ---------------------------------------------------------------------------
+config:
+  DJANGO_DEBUG: "True"
+  DJANGO_ALLOWED_HOSTS: "*"
+  DJANGO_SECRET_KEY: "django-insecure-p0vu#$kj%r)pty^&vzy604bhhbt(dnuloelk-vjkchlv$r6*kd"
+  # У кластері немає окремої БД, тому за замовчуванням sqlite усередині поду.
+  # Щоб перемкнутись на Postgres — DJANGO_DB_ENGINE: django.db.backends.postgresql
+  DJANGO_DB_ENGINE: "django.db.backends.sqlite3"
+  SQLITE_PATH: "/tmp/db.sqlite3"
+  POSTGRES_DB: "mydatabase"
+  POSTGRES_USER: "myuser"
+  POSTGRES_PASSWORD: "mypassword"
+  POSTGRES_HOST: "db"
+  POSTGRES_PORT: "5432"
+  PYTHONUNBUFFERED: "1"
+
+# HPA: від 2 до 6 подів при завантаженні CPU > 70%
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 0 # 0 = метрика памʼяті вимкнена
+
+# requests обовʼязкові — без них HPA не може порахувати відсоток CPU
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+livenessProbe:
+  enabled: true
+  path: /healthz/
+  initialDelaySeconds: 20
+  periodSeconds: 15
+
+readinessProbe:
+  enabled: true
+  path: /healthz/
+  initialDelaySeconds: 10
+  periodSeconds: 10
+
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
