@@ -19,8 +19,6 @@ locals {
   cluster_name = "lesson-7-eks"
 }
 
-# S3 + DynamoDB для стейту вже створені в lesson-5 і використовуються через backend.tf.
-# Модуль лишається в проєкті і вмикається змінною, якщо бекенд треба створити з нуля.
 variable "create_state_backend" {
   type        = bool
   description = "Створити S3 бакет і DynamoDB таблицю для стейту (вже існують з lesson-5)"
@@ -43,9 +41,7 @@ module "vpc" {
   public_subnets     = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
   private_subnets    = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
   availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
-
-  # Теги, без яких EKS не знайде підмережі для LoadBalancer-сервісів
-  cluster_name = local.cluster_name
+  cluster_name       = local.cluster_name
 }
 
 module "ecr" {
@@ -64,13 +60,10 @@ module "eks" {
   public_subnet_ids  = module.vpc.public_subnet_ids
   private_subnet_ids = module.vpc.private_subnet_ids
 
-  # t3.small — один з небагатьох типів, дозволених на Free Tier акаунті
-  # (t3.medium відхиляється з InvalidParameterCombination)
   node_instance_types = ["t3.small"]
   node_desired_size   = 2
   node_min_size       = 2
   node_max_size       = 4
 
-  # metrics-server потрібен, щоб HPA бачив завантаження CPU
   cluster_addons = ["vpc-cni", "kube-proxy", "coredns", "metrics-server"]
 }

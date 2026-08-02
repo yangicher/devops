@@ -81,7 +81,6 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# Параметри БД беруться зі змінних середовища (docker-compose / ConfigMap у Kubernetes).
 DB_ENGINE = os.environ.get('DJANGO_DB_ENGINE', 'django.db.backends.sqlite3')
 
 if DB_ENGINE.endswith('sqlite3'):

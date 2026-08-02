@@ -1,7 +1,3 @@
-########################
-# IAM роль для control plane
-########################
-
 resource "aws_iam_role" "cluster" {
   name = "${var.cluster_name}-cluster-role"
 
@@ -26,10 +22,6 @@ resource "aws_iam_role_policy_attachment" "cluster_vpc_resource_controller" {
   role       = aws_iam_role.cluster.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSVPCResourceController"
 }
-
-########################
-# IAM роль для worker nodes
-########################
 
 resource "aws_iam_role" "node" {
   name = "${var.cluster_name}-node-role"
@@ -56,15 +48,10 @@ resource "aws_iam_role_policy_attachment" "node_cni_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
 }
 
-# Дозволяє нодам тягнути образи з ECR
 resource "aws_iam_role_policy_attachment" "node_ecr_readonly" {
   role       = aws_iam_role.node.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
-
-########################
-# Kubernetes кластер
-########################
 
 resource "aws_eks_cluster" "this" {
   name     = var.cluster_name
@@ -72,15 +59,13 @@ resource "aws_eks_cluster" "this" {
   version  = var.cluster_version
 
   vpc_config {
-    # Control plane бачить і публічні (для LoadBalancer), і приватні підмережі
     subnet_ids              = concat(var.public_subnet_ids, var.private_subnet_ids)
     endpoint_public_access  = var.endpoint_public_access
     endpoint_private_access = var.endpoint_private_access
   }
 
   access_config {
-    authentication_mode = "API_AND_CONFIG_MAP"
-    # Той, хто виконує terraform apply, одразу отримує права адміністратора кластера
+    authentication_mode                         = "API_AND_CONFIG_MAP"
     bootstrap_cluster_creator_admin_permissions = true
   }
 
@@ -94,16 +79,11 @@ resource "aws_eks_cluster" "this" {
   ]
 }
 
-########################
-# Managed node group
-########################
-
 resource "aws_eks_node_group" "this" {
   cluster_name    = aws_eks_cluster.this.name
   node_group_name = "${var.cluster_name}-ng"
   node_role_arn   = aws_iam_role.node.arn
-  # Ноди живуть у приватних підмережах і ходять в інтернет через NAT
-  subnet_ids = var.private_subnet_ids
+  subnet_ids      = var.private_subnet_ids
 
   instance_types = var.node_instance_types
   capacity_type  = var.node_capacity_type
@@ -128,14 +108,9 @@ resource "aws_eks_node_group" "this" {
   ]
 
   lifecycle {
-    # desired_size може змінюватись автоскейлером — не відкочуємо його
     ignore_changes = [scaling_config[0].desired_size]
   }
 }
-
-########################
-# Аддони (coredns, kube-proxy, vpc-cni, metrics-server для HPA)
-########################
 
 resource "aws_eks_addon" "this" {
   for_each = toset(var.cluster_addons)
@@ -145,6 +120,5 @@ resource "aws_eks_addon" "this" {
   resolve_conflicts_on_create = "OVERWRITE"
   resolve_conflicts_on_update = "OVERWRITE"
 
-  # coredns і metrics-server не запустяться, поки немає нод
   depends_on = [aws_eks_node_group.this]
 }

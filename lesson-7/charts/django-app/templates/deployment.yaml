@@ -19,7 +19,6 @@ spec:
   template:
     metadata:
       annotations:
-        # Перезапускаємо поди, коли змінився ConfigMap
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
         {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
@@ -43,7 +42,6 @@ spec:
             - name: http
               containerPort: {{ .Values.containerPort }}
               protocol: TCP
-          # Змінні середовища з ConfigMap (перенесені з теми 4)
           envFrom:
             - configMapRef:
                 name: {{ include "django-app.configMapName" . }}

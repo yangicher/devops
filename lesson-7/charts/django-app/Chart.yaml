@@ -2,11 +2,7 @@ apiVersion: v2
 name: django-app
 description: Django-застосунок з теми 4, розгорнутий у EKS (образ з ECR, ConfigMap, LoadBalancer, HPA)
 type: application
-
-# Версія чарту
 version: 0.1.0
-
-# Версія самого застосунку
 appVersion: "1.0.0"
 
 keywords:

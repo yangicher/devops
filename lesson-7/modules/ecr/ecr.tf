@@ -38,7 +38,6 @@ resource "aws_ecr_repository_policy" "repo_policy" {
   })
 }
 
-# Тримаємо тільки останні N образів, щоб репозиторій не ріс безкінечно
 resource "aws_ecr_lifecycle_policy" "repo_lifecycle" {
   repository = aws_ecr_repository.repo.name
 

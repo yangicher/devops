@@ -4,7 +4,6 @@ services:
   web:
     build: .
     command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
-    # Ці ж змінні перенесені в ConfigMap Helm-чарту (lesson-7/charts/django-app)
     environment:
       DJANGO_DEBUG: "True"
       DJANGO_ALLOWED_HOSTS: "*"

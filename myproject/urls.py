@@ -20,7 +20,6 @@ from django.urls import path
 
 
 def healthz(request):
-    """Ендпоінт для liveness/readiness проб Kubernetes."""
     return JsonResponse({'status': 'ok'})
 
 

@@ -1,6 +1,4 @@
 locals {
-  # Теги, які EKS/AWS cloud controller використовує для автовизначення підмереж.
-  # Без них Service типу LoadBalancer не зможе створити ELB.
   cluster_tags = var.cluster_name == "" ? {} : {
     "kubernetes.io/cluster/${var.cluster_name}" = "shared"
   }
