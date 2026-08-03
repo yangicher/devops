@@ -33,7 +33,7 @@ locals {
 
 resource "aws_db_subnet_group" "this" {
   name        = "${var.name}-subnet-group"
-  description = "Підмережі для ${var.name}"
+  description = "Subnets for ${var.name}"
   subnet_ids  = var.subnet_ids
 
   tags = local.tags
@@ -41,7 +41,7 @@ resource "aws_db_subnet_group" "this" {
 
 resource "aws_security_group" "this" {
   name        = "${var.name}-sg"
-  description = "Доступ до БД ${var.name} на порту ${local.port}"
+  description = "Database access for ${var.name} on port ${local.port}"
   vpc_id      = var.vpc_id
 
   tags = local.tags
@@ -55,7 +55,7 @@ resource "aws_vpc_security_group_ingress_rule" "cidr" {
   for_each = toset(var.allowed_cidr_blocks)
 
   security_group_id = aws_security_group.this.id
-  description       = "Доступ з ${each.value}"
+  description       = "Access from ${each.value}"
   cidr_ipv4         = each.value
   from_port         = local.port
   to_port           = local.port
@@ -66,7 +66,7 @@ resource "aws_vpc_security_group_ingress_rule" "security_group" {
   count = length(var.allowed_security_group_ids)
 
   security_group_id            = aws_security_group.this.id
-  description                  = "Доступ з security group ${count.index + 1}"
+  description                  = "Access from security group ${count.index + 1}"
   referenced_security_group_id = var.allowed_security_group_ids[count.index]
   from_port                    = local.port
   to_port                      = local.port
@@ -75,7 +75,7 @@ resource "aws_vpc_security_group_ingress_rule" "security_group" {
 
 resource "aws_vpc_security_group_egress_rule" "all" {
   security_group_id = aws_security_group.this.id
-  description       = "Весь вихідний трафік"
+  description       = "All outbound traffic"
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1"
 }
@@ -83,7 +83,7 @@ resource "aws_vpc_security_group_egress_rule" "all" {
 resource "aws_db_parameter_group" "this" {
   name        = "${var.name}-instance-pg"
   family      = local.parameter_group_family
-  description = "Параметри інстансу для ${var.name}"
+  description = "Instance parameters for ${var.name}"
 
   dynamic "parameter" {
     for_each = var.use_aurora ? {} : local.parameters
@@ -107,7 +107,7 @@ resource "aws_rds_cluster_parameter_group" "this" {
 
   name        = "${var.name}-cluster-pg"
   family      = local.parameter_group_family
-  description = "Параметри кластера для ${var.name}"
+  description = "Cluster parameters for ${var.name}"
 
   dynamic "parameter" {
     for_each = local.parameters

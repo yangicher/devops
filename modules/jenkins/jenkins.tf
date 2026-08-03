@@ -27,7 +27,7 @@ resource "aws_iam_role" "jenkins" {
 
 resource "aws_iam_policy" "jenkins_ecr" {
   name        = "${var.cluster_name}-jenkins-ecr"
-  description = "Дозволяє агентам Jenkins пушити образи в ECR"
+  description = "Allows Jenkins agents to push images to ECR"
 
   policy = jsonencode({
     Version = "2012-10-17",
