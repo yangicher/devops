@@ -55,7 +55,7 @@ spec:
     stage('Checkout') {
       steps {
         container('git') {
-          checkout scm
+          sh 'git config --global --add safe.directory "${WORKSPACE}"'
           script {
             env.SHORT_SHA = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
             env.IMAGE_TAG = "build-${env.BUILD_NUMBER}-${env.SHORT_SHA}"
@@ -96,6 +96,8 @@ spec:
           )]) {
             sh '''
               set -eu
+
+              git config --global --add safe.directory "${WORKSPACE}"
 
               sed -i "s|^\\( *tag: \\).*|\\1${IMAGE_TAG}|" "${VALUES_FILE}"
               grep -n "tag:" "${VALUES_FILE}"
