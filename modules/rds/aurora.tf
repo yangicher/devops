@@ -49,6 +49,7 @@ resource "aws_rds_cluster_instance" "this" {
 
   performance_insights_enabled = var.performance_insights_enabled
   monitoring_interval          = var.monitoring_interval
+  monitoring_role_arn          = var.monitoring_role_arn
   publicly_accessible          = var.publicly_accessible
   apply_immediately            = var.apply_immediately
 

@@ -30,6 +30,7 @@ resource "aws_db_instance" "this" {
 
   performance_insights_enabled = var.performance_insights_enabled
   monitoring_interval          = var.monitoring_interval
+  monitoring_role_arn          = var.monitoring_role_arn
 
   deletion_protection       = var.deletion_protection
   skip_final_snapshot       = var.skip_final_snapshot

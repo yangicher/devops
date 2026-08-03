@@ -167,6 +167,7 @@ module "rds" {
 | `skip_final_snapshot` | `bool` | `true` | Не робити фінальний снапшот |
 | `performance_insights_enabled` | `bool` | `false` | Performance Insights |
 | `monitoring_interval` | `number` | `0` | Enhanced Monitoring: 0, 1, 5, 10, 15, 30, 60 |
+| `monitoring_role_arn` | `string` | `null` | ARN ролі для Enhanced Monitoring. Валідація вимагає його, якщо `monitoring_interval > 0` |
 | `apply_immediately` | `bool` | `false` | Застосовувати зміни одразу |
 | `tags` | `map(string)` | `{}` | Додаткові теги |
 

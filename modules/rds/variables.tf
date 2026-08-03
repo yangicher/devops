@@ -189,8 +189,24 @@ variable "performance_insights_enabled" {
 
 variable "monitoring_interval" {
   type        = number
-  description = "Інтервал Enhanced Monitoring у секундах: 0, 1, 5, 10, 15, 30 або 60"
+  description = "Інтервал Enhanced Monitoring у секундах: 0, 1, 5, 10, 15, 30 або 60. Ненульове значення вимагає monitoring_role_arn"
   default     = 0
+
+  validation {
+    condition     = contains([0, 1, 5, 10, 15, 30, 60], var.monitoring_interval)
+    error_message = "monitoring_interval має бути одним з: 0, 1, 5, 10, 15, 30, 60."
+  }
+}
+
+variable "monitoring_role_arn" {
+  type        = string
+  description = "ARN IAM-ролі для Enhanced Monitoring. Обов'язковий, якщо monitoring_interval > 0"
+  default     = null
+
+  validation {
+    condition     = var.monitoring_interval == 0 || var.monitoring_role_arn != null
+    error_message = "При monitoring_interval > 0 потрібно задати monitoring_role_arn."
+  }
 }
 
 variable "apply_immediately" {
