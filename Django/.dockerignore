@@ -1,0 +1,9 @@
+.git
+.idea
+**/__pycache__
+*.pyc
+db.sqlite3
+mydatabase
+docker-compose.yaml
+nginx
+Jenkinsfile

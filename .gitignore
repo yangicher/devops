@@ -1,0 +1,9 @@
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+crash.log
+.idea/
+.vscode/
+.DS_Store
+.claude/settings.local.json

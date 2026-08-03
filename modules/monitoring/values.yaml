@@ -1,0 +1,112 @@
+fullnameOverride: ""
+
+crds:
+  enabled: true
+
+alertmanager:
+  enabled: false
+
+prometheus:
+  service:
+    type: ClusterIP
+
+  prometheusSpec:
+    retention: ${prometheus_retention}
+
+    resources:
+      requests:
+        cpu: "${prometheus_cpu_request}"
+        memory: "${prometheus_memory_request}"
+      limits:
+        cpu: "${prometheus_cpu_limit}"
+        memory: "${prometheus_memory_limit}"
+
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: ${storage_class}
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: ${prometheus_storage_size}
+
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+
+grafana:
+  enabled: true
+
+  adminPassword: "${grafana_admin_password}"
+
+  fullnameOverride: grafana
+
+  service:
+    type: ${grafana_service_type}
+    port: 80
+
+  resources:
+    requests:
+      cpu: "${grafana_cpu_request}"
+      memory: "${grafana_memory_request}"
+    limits:
+      cpu: "${grafana_cpu_limit}"
+      memory: "${grafana_memory_limit}"
+
+  persistence:
+    enabled: true
+    storageClassName: ${storage_class}
+    size: ${grafana_storage_size}
+
+  defaultDashboardsEnabled: true
+  defaultDashboardsTimezone: utc
+
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      searchNamespace: ALL
+    datasources:
+      enabled: true
+
+  grafana.ini:
+    users:
+      viewers_can_edit: true
+    auth.anonymous:
+      enabled: false
+
+prometheus-node-exporter:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
+
+kube-state-metrics:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+prometheusOperator:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+
+defaultRules:
+  create: true
+  rules:
+    alertmanager: false
+    etcd: false
+    kubeProxy: false
+    kubeSchedulerAlerting: false
+    kubeControllerManager: false
