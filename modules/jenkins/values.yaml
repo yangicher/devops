@@ -1,0 +1,108 @@
+controller:
+  admin:
+    username: "${admin_user}"
+    password: "${admin_password}"
+
+  serviceType: LoadBalancer
+  servicePort: 8080
+
+  resources:
+    requests:
+      cpu: "${cpu_request}"
+      memory: "${memory_request}"
+    limits:
+      cpu: "${cpu_limit}"
+      memory: "${memory_limit}"
+
+  additionalPlugins:
+    - job-dsl
+    - pipeline-stage-view
+
+  containerEnv:
+    - name: GITHUB_USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: ${github_secret_name}
+          key: username
+    - name: GITHUB_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: ${github_secret_name}
+          key: token
+
+  JCasC:
+    defaultConfig: true
+    configScripts:
+      credentials: |
+        credentials:
+          system:
+            domainCredentials:
+              - credentials:
+                  - usernamePassword:
+                      scope: GLOBAL
+                      id: "github-creds"
+                      username: "$${GITHUB_USERNAME}"
+                      password: "$${GITHUB_TOKEN}"
+                      description: "GitHub PAT for pushing the image tag"
+      globals: |
+        jenkins:
+          globalNodeProperties:
+            - envVars:
+                env:
+                  - key: "ECR_REPOSITORY"
+                    value: "${ecr_repository_url}"
+                  - key: "AWS_REGION"
+                    value: "${aws_region}"
+                  - key: "VALUES_FILE"
+                    value: "${values_file_path}"
+                  - key: "GIT_REPO_URL"
+                    value: "${github_repo_url}"
+                  - key: "GIT_BRANCH_NAME"
+                    value: "${git_branch}"
+      jobs: |
+        jobs:
+          - script: >
+              pipelineJob('django-app') {
+                description('Build the Django image with Kaniko, push to ECR and bump the Helm chart tag')
+                definition {
+                  cpsScm {
+                    scm {
+                      git {
+                        remote {
+                          url('${github_repo_url}')
+                          credentials('github-creds')
+                        }
+                        branch('*/${git_branch}')
+                      }
+                    }
+                    scriptPath('Jenkinsfile')
+                    lightweight(false)
+                  }
+                }
+              }
+
+persistence:
+  enabled: true
+  storageClass: "${storage_class}"
+  size: "${storage_size}"
+
+serviceAccount:
+  create: true
+  name: "${service_account_name}"
+  annotations:
+    eks.amazonaws.com/role-arn: "${role_arn}"
+
+serviceAccountAgent:
+  create: false
+  name: "${service_account_name}"
+
+agent:
+  enabled: true
+  podName: jenkins-agent
+  resources:
+    requests:
+      cpu: "200m"
+      memory: "256Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"

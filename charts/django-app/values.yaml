@@ -1,0 +1,68 @@
+replicaCount: 2
+
+image:
+  repository: 018585551525.dkr.ecr.us-west-2.amazonaws.com/lesson-db-django
+  tag: build-3-f5d3cf5
+  pullPolicy: Always
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+command:
+  - sh
+  - -c
+  - python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000
+
+containerPort: 8000
+
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 8000
+  annotations: {}
+
+config:
+  DJANGO_DEBUG: "True"
+  DJANGO_ALLOWED_HOSTS: "*"
+  DJANGO_SECRET_KEY: "django-insecure-p0vu#$kj%r)pty^&vzy604bhhbt(dnuloelk-vjkchlv$r6*kd"
+  DJANGO_DB_ENGINE: "django.db.backends.sqlite3"
+  SQLITE_PATH: "/tmp/db.sqlite3"
+  POSTGRES_DB: "mydatabase"
+  POSTGRES_USER: "myuser"
+  POSTGRES_PASSWORD: "mypassword"
+  POSTGRES_HOST: "db"
+  POSTGRES_PORT: "5432"
+  PYTHONUNBUFFERED: "1"
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 0
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+livenessProbe:
+  enabled: true
+  path: /healthz/
+  initialDelaySeconds: 20
+  periodSeconds: 15
+
+readinessProbe:
+  enabled: true
+  path: /healthz/
+  initialDelaySeconds: 10
+  periodSeconds: 10
+
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}

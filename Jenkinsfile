@@ -1,0 +1,133 @@
+pipeline {
+  agent {
+    kubernetes {
+      defaultContainer 'kaniko'
+      yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  serviceAccountName: jenkins
+  restartPolicy: Never
+  containers:
+    - name: kaniko
+      image: gcr.io/kaniko-project/executor:v1.23.2-debug
+      imagePullPolicy: IfNotPresent
+      command: ['/busybox/cat']
+      tty: true
+      resources:
+        requests:
+          cpu: 300m
+          memory: 512Mi
+        limits:
+          cpu: 1500m
+          memory: 1536Mi
+      volumeMounts:
+        - name: kaniko-docker-config
+          mountPath: /kaniko/.docker
+    - name: git
+      image: alpine/git:2.45.2
+      command: ['cat']
+      tty: true
+      resources:
+        requests:
+          cpu: 50m
+          memory: 64Mi
+        limits:
+          cpu: 300m
+          memory: 256Mi
+  volumes:
+    - name: kaniko-docker-config
+      emptyDir: {}
+"""
+    }
+  }
+
+  options {
+    buildDiscarder(logRotator(numToKeepStr: '20'))
+    timeout(time: 30, unit: 'MINUTES')
+  }
+
+  environment {
+    IMAGE_TAG = "build-${env.BUILD_NUMBER}-${env.GIT_COMMIT ? env.GIT_COMMIT.take(7) : 'manual'}"
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        container('git') {
+          sh 'git config --global --add safe.directory "${WORKSPACE}"'
+          script {
+            env.SHORT_SHA = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+            env.IMAGE_TAG = "build-${env.BUILD_NUMBER}-${env.SHORT_SHA}"
+          }
+          echo "Building ${env.ECR_REPOSITORY}:${env.IMAGE_TAG}"
+        }
+      }
+    }
+
+    stage('Build and push image') {
+      steps {
+        container('kaniko') {
+          sh '''
+            set -eu
+            echo '{"credsStore":"ecr-login"}' > /kaniko/.docker/config.json
+
+            /kaniko/executor \
+              --context "${WORKSPACE}" \
+              --dockerfile "${WORKSPACE}/Dockerfile" \
+              --destination "${ECR_REPOSITORY}:${IMAGE_TAG}" \
+              --destination "${ECR_REPOSITORY}:latest" \
+              --cache=true \
+              --cache-repo "${ECR_REPOSITORY}" \
+              --snapshot-mode=redo \
+              --verbosity=info
+          '''
+        }
+      }
+    }
+
+    stage('Bump chart tag') {
+      steps {
+        container('git') {
+          withCredentials([usernamePassword(
+            credentialsId: 'github-creds',
+            usernameVariable: 'GIT_USER',
+            passwordVariable: 'GIT_TOKEN'
+          )]) {
+            sh '''
+              set -eu
+
+              git config --global --add safe.directory "${WORKSPACE}"
+
+              sed -i "s|^\\( *tag: \\).*|\\1${IMAGE_TAG}|" "${VALUES_FILE}"
+              grep -n "tag:" "${VALUES_FILE}"
+
+              if git diff --quiet -- "${VALUES_FILE}"; then
+                echo "values.yaml already on ${IMAGE_TAG}, nothing to push"
+                exit 0
+              fi
+
+              git config user.email "jenkins@ci.local"
+              git config user.name "jenkins"
+
+              git add "${VALUES_FILE}"
+              git commit -m "ci: update django-app image tag to ${IMAGE_TAG}"
+
+              REPO_HOST=$(echo "${GIT_REPO_URL}" | sed -e 's|https://||' -e 's|\\.git$||')
+              git push "https://${GIT_USER}:${GIT_TOKEN}@${REPO_HOST}.git" HEAD:${GIT_BRANCH_NAME}
+            '''
+          }
+        }
+      }
+    }
+  }
+
+  post {
+    success {
+      echo "Pushed ${env.ECR_REPOSITORY}:${env.IMAGE_TAG} and bumped ${env.VALUES_FILE}. Argo CD will sync."
+    }
+    failure {
+      echo "Pipeline failed. Check the stage log above."
+    }
+  }
+}
