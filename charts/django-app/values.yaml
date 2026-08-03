@@ -2,7 +2,7 @@ replicaCount: 2
 
 image:
   repository: 018585551525.dkr.ecr.us-west-2.amazonaws.com/final-django
-  tag: build-3-f5d3cf5
+  tag: build-1-518cb49
   pullPolicy: Always
 
 imagePullSecrets: []
