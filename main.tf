@@ -154,7 +154,7 @@ module "rds" {
   use_aurora = var.use_aurora
 
   engine         = var.use_aurora ? "aurora-postgresql" : "postgres"
-  engine_version = var.use_aurora ? "16.4" : "16.4"
+  engine_version = var.use_aurora ? "16.14" : "16.14"
   instance_class = var.use_aurora ? "db.t3.medium" : "db.t4g.micro"
   multi_az       = false
 
@@ -174,6 +174,8 @@ module "rds" {
 
   skip_final_snapshot = true
   deletion_protection = false
+
+  backup_retention_period = 1
 }
 
 resource "kubernetes_secret" "django_db" {

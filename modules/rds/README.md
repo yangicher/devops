@@ -26,7 +26,7 @@ module "rds" {
   use_aurora = false
 
   engine         = "postgres"
-  engine_version = "16.4"
+  engine_version = "16.14"
   instance_class = "db.t4g.micro"
   multi_az       = false
 
@@ -54,7 +54,7 @@ module "rds" {
   use_aurora = true                    # <—
 
   engine                = "aurora-postgresql"   # <—
-  engine_version        = "16.4"
+  engine_version        = "16.14"
   instance_class        = "db.t3.medium"        # <— Aurora не підтримує t4g.micro
   aurora_instance_count = 2                     # <— 1 writer + 1 reader
 
@@ -110,7 +110,7 @@ module "rds" {
 | `use_aurora` | `bool` | `false` | `true` — Aurora-кластер, `false` — одна RDS-інстанція |
 | `name` | `string` | — | **Обов'язкова.** Базове ім'я для всіх ресурсів модуля |
 | `engine` | `string` | `"postgres"` | `postgres`, `mysql`, `aurora-postgresql`, `aurora-mysql`. Перевіряється валідацією |
-| `engine_version` | `string` | `"16.4"` | Версія рушія |
+| `engine_version` | `string` | `"16.14"` | Версія рушія |
 | `instance_class` | `string` | `"db.t4g.micro"` | Клас інстансу. Aurora вимагає мінімум `db.t3.medium` |
 | `multi_az` | `bool` | `false` | Standby в іншій AZ (тільки звичайна RDS) |
 | `aurora_instance_count` | `number` | `1` | Кількість інстансів Aurora, 1..15. Перший — writer |
@@ -227,3 +227,7 @@ default_port = local.is_postgres ? 5432 : 3306
   досягається кількома інстансами в різних AZ через `aurora_instance_count`.
 - Зміна `use_aurora` на вже створеній БД означає видалення однієї БД і
   створення іншої — дані не мігрують.
+- Не кожна мінорна версія доступна в кожному регіоні. Перевірити перелік:
+  `aws rds describe-db-engine-versions --engine postgres --query 'DBEngineVersions[].EngineVersion'`
+- Free Tier обмежує глибину автоматичних бекапів — `backup_retention_period = 7`
+  відхиляється з `FreeTierRestrictionError`.
