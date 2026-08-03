@@ -1,6 +1,7 @@
 controller:
-  adminUser: "${admin_user}"
-  adminPassword: "${admin_password}"
+  admin:
+    username: "${admin_user}"
+    password: "${admin_password}"
 
   serviceType: LoadBalancer
   servicePort: 8080
@@ -14,9 +15,8 @@ controller:
       memory: "${memory_limit}"
 
   additionalPlugins:
-    - job-dsl:1.93
-    - pipeline-stage-view:2.34
-    - kubernetes-credentials-provider:1.262.v2f3335c_b__c496
+    - job-dsl
+    - pipeline-stage-view
 
   containerEnv:
     - name: GITHUB_USERNAME
